@@ -65,20 +65,20 @@ def knnUser(userScores, avgForIndividual, countForIndividual, first, second, all
 
 def main():
 	#reading the data in
-	if len(sys.argv) < 4:
-		print("Usage: python EvaluateCFRandom.py method size repeats [knnNeighbors]")
+	if len(sys.argv) < 3:
+		print("Usage: python EvaluateCFList.py method filename [knnNeighbors]")
 		print("Methods: meanUser meanItem weightedUser weightedItem knnUser knnItem")
 		print("knnUser and knnItem must have the additional knnNeighbors flag to indicate the number of neighbors to use")
 		return
 	method = sys.argv[1]
-	size = int(sys.argv[2])
-	repeats = int(sys.argv[3])
+	filename = sys.argv[2]
 	knnNum = -1
 	if(method == "knnUser" or method == "knnItem"):
-		knnNum = int(sys.argv[4])
+		knnNum = int(sys.argv[3])
 
 	f = open("jester-data-1.csv", "r")
 	f2 = open("output.csv", "w")
+	f3 = open(filename, "r")
 
 	userScores = np.zeros((24983, 100))
 	itemsRatedPerUser = [0 for i in range(24983)]
@@ -118,15 +118,20 @@ def main():
 	#then perform method and find MAE
 	MAEList = []
 	start = time.clock()
+	repeats = 1
 	for i in range(repeats):
 		MAE = 0
 		count = 0
 		tupSet = set()
-		while len(tupSet) < size:
-			user = randint(0, 24982)
-			item = randint(0, 99)
-			if userScores[user][item] != 99:
-				tupSet.add((user, item))
+		for line in f3:
+			line = line.split(",")
+			curFirst = int(line[0])
+			curSecond = int(line[1])
+			#assume that the users and items start at 1 and 1
+			if userScores[curFirst - 1][curSecond - 1] != 99:
+				tupSet.add((curFirst - 1, curSecond - 1))
+			else:
+				f2.write("Line " + str(line) + " is not valid\n")
 		if method == "meanUser":
 			for tup in tupSet:
 				actual = userScores[tup[0]][tup[1]]
@@ -173,12 +178,7 @@ def main():
 				MAE += abs(actual - pred)
 				f2.write(str(tup[0] + 1) + ","  + str(tup[1] + 1) + "," + str(actual) + ","  + str(pred) + "," + str(actual - pred) +"\n")
 				count += 1
-		MAEList.append(MAE/count)
-		f2.write("Iteration " + str(i + 1) + " MAE: " + str(MAE/count))
-		f2.write("\n\n")
-	f2.write("Mean of all MAE's is " + str(s.mean(MAEList)) + "\n")
-	if repeats > 1:
-		f2.write("Standard deviation of all MAE's is " + str(s.stdev(MAEList)))
+		f2.write("MAE is: " + str(MAE/count))
 	print("final time is ",time.clock() - start)
 
 
